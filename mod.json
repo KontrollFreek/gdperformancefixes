@@ -1,0 +1,17 @@
+{
+	"geode": "5.7.1",
+	"gd": {
+		"win": "2.2081",
+		"android": "2.2081",
+		"mac": "2.2081",
+		"ios": "2.2081"
+	},
+	"id": "lexi.gdperformancefixes",
+	"name": "gdperformancefixes",
+	"version": "v0.0.1",
+	"developer": "Lexi",
+	"description": "Attempts to improve GD's performance",
+	"dependencies": {
+		"geode.node-ids": ">=v1.23.3"
+	}
+}

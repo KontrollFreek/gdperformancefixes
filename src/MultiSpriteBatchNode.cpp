@@ -2,6 +2,24 @@
 
 using namespace geode::prelude;
 
+MultiSpriteBatchNode::MultiSpriteBatchNode() :
+    m_pQuads(nullptr),
+    m_pIndices(nullptr),
+    m_uTotalQuads(0),
+    m_bDirty(false) {}
+
+MultiSpriteBatchNode::~MultiSpriteBatchNode() {
+    CC_SAFE_DELETE(m_pobTextureAtlases);
+    CC_SAFE_DELETE(m_pobDescendents);
+
+    CC_SAFE_DELETE_ARRAY(m_pQuads);
+    CC_SAFE_DELETE_ARRAY(m_pIndices);
+
+    glDeleteVertexArrays(1, &m_uVAOname);
+    glDeleteBuffers(2, m_pBuffersVBO);
+}
+
+
 MultiSpriteBatchNode* create(unsigned int capacity) {
     MultiSpriteBatchNode* node = new MultiSpriteBatchNode();
     node->init(capacity);
@@ -22,27 +40,9 @@ bool MultiSpriteBatchNode::init(unsigned int capacity) {
 }
 
 
-MultiSpriteBatchNode::MultiSpriteBatchNode() :
-    m_pQuads(nullptr),
-    m_pIndices(nullptr),
-    m_uTotalQuads(0),
-    m_bDirty(false) {}
-
-MultiSpriteBatchNode::~MultiSpriteBatchNode() {
-    CC_SAFE_DELETE(m_pobTextureAtlases);
-    CC_SAFE_DELETE(m_pobDescendents);
-
-    CC_SAFE_DELETE_ARRAY(m_pQuads);
-    CC_SAFE_DELETE_ARRAY(m_pIndices);
-
-    glDeleteVertexArrays(1, &m_uVAOname);
-    glDeleteBuffers(2, m_pBuffersVBO);
-}
-
-
 void MultiSpriteBatchNode::draw() {
     if (m_pChildren->count() == 0) return;
-    if (m_pobTextureAtlases->count() == 0) return;
+    if (m_pobTextureAtlases->empty()) return;
 
     CC_NODE_DRAW_SETUP();
     

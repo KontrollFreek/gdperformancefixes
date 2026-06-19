@@ -64,7 +64,7 @@ struct V3F_C4B_T2F_I1UI_Quad {
     V3F_C4B_T2F_I1UI tr;
 };
 
-class MultiSpriteBatchNode : public cocos2d::CCNode, public cocos2d::CCTextureProtocol {
+class MultiSpriteBatchNode : public cocos2d::CCNode/*, public cocos2d::CCTextureProtocol*/ {
     public:
 
         geode::cocos::CCArrayExt<cocos2d::CCTextureAtlas*>* m_pobTextureAtlases;

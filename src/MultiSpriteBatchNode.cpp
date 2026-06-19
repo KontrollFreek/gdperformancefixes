@@ -1,15 +1,16 @@
-#include "CCMultiSpriteBatchNode.h"
-#include "Geode/cocos/platform/win32/CCGL.h"
+#include "MultiSpriteBatchNode.h"
 
-CCMultiSpriteBatchNode* create(unsigned int capacity) {
-    CCMultiSpriteBatchNode* node = new CCMultiSpriteBatchNode();
+using namespace geode::prelude;
+
+MultiSpriteBatchNode* create(unsigned int capacity) {
+    MultiSpriteBatchNode* node = new MultiSpriteBatchNode();
     node->init(capacity);
     node->autorelease();
 
     return node;
 }
 
-bool CCMultiSpriteBatchNode::init(unsigned int capacity) {
+bool MultiSpriteBatchNode::init(unsigned int capacity) {
     if (!CCNode::init()) return false;
 
     m_pobTextureAtlases = new CCArrayExt<CCTextureAtlas*>();
@@ -21,7 +22,13 @@ bool CCMultiSpriteBatchNode::init(unsigned int capacity) {
 }
 
 
-CCMultiSpriteBatchNode::~CCMultiSpriteBatchNode() {
+MultiSpriteBatchNode::MultiSpriteBatchNode() :
+    m_pQuads(nullptr),
+    m_pIndices(nullptr),
+    m_uTotalQuads(0),
+    m_bDirty(false) {}
+
+MultiSpriteBatchNode::~MultiSpriteBatchNode() {
     CC_SAFE_RELEASE(m_pobTextureAtlases);
     CC_SAFE_RELEASE(m_pobDescendents);
 
@@ -33,7 +40,7 @@ CCMultiSpriteBatchNode::~CCMultiSpriteBatchNode() {
 }
 
 
-void CCMultiSpriteBatchNode::draw() {
+void MultiSpriteBatchNode::draw() {
     if (m_pChildren->count() == 0) return;
     if (m_pobTextureAtlases->count() == 0) return;
 
@@ -55,7 +62,7 @@ void CCMultiSpriteBatchNode::draw() {
     }
 }
 
-CCGLProgram* CCMultiSpriteBatchNode::getOrCreateShaderProgram() {
+CCGLProgram* MultiSpriteBatchNode::getOrCreateShaderProgram() {
     auto sharedShaderCache = CCShaderCache::sharedShaderCache();
     CCGLProgram* program;
 
@@ -83,7 +90,7 @@ CCGLProgram* CCMultiSpriteBatchNode::getOrCreateShaderProgram() {
     return program;
 }
 
-void CCMultiSpriteBatchNode::initVBOandVAO() {
+void MultiSpriteBatchNode::initVBOandVAO() {
     glGenVertexArrays(1, &m_uVAOname);
     ccGLBindVAO(m_uVAOname);
 

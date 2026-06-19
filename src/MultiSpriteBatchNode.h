@@ -2,8 +2,6 @@
 
 #include <Geode/Geode.hpp>
 
-using namespace geode::prelude;
-
 constexpr const char* kShader_AddressableTexture = "ShaderAddressableTexture";
 constexpr const char* kAttributeNameTexIndex = "a_texIndex";
 constexpr const GLuint kVertexAttrib_TexIndex = cocos2d::kCCVertexAttrib_TexCoords + 1;
@@ -47,13 +45,13 @@ void main() {
 
 struct V3F_C4B_T2F_I1UI {
     //! vertices (3F) (12 bytes)
-    ccVertex3F  vertices;
+    cocos2d::ccVertex3F vertices;
     //! colors (4B) (4 bytes)
-    ccColor4B   colors;
+    cocos2d::ccColor4B  colors;
     //! tex coords (2F) (8 bytes)
-    ccTex2F     texCoords;
+    cocos2d::ccTex2F    texCoords;
     //! tex index (1UI) (4 bytes)
-    GLuint     texIndex;
+    GLuint              texIndex;
 };
 struct V3F_C4B_T2F_I1UI_Quad {
     //! bottom left
@@ -66,13 +64,13 @@ struct V3F_C4B_T2F_I1UI_Quad {
     V3F_C4B_T2F_I1UI tr;
 };
 
-class CCMultiSpriteBatchNode : public cocos2d::CCNode, public cocos2d::CCTextureProtocol {
+class MultiSpriteBatchNode : public cocos2d::CCNode, public cocos2d::CCTextureProtocol {
     public:
 
-        CCArrayExt<CCTextureAtlas*>* m_pobTextureAtlases = nullptr;
-        CCArrayExt<CCNode*>* m_pobDescendents = nullptr; // All children in a flat array
-        V3F_C4B_T2F_I1UI_Quad* m_pQuads = nullptr;
-        GLushort* m_pIndices = nullptr;
+        geode::cocos::CCArrayExt<cocos2d::CCTextureAtlas*>* m_pobTextureAtlases;
+        geode::cocos::CCArrayExt<cocos2d::CCNode*>* m_pobDescendents; // All children in a flat array
+        V3F_C4B_T2F_I1UI_Quad* m_pQuads;
+        GLushort* m_pIndices;
 
         GLuint m_pBuffersVBO[2]; // 0: vertex  1: indices
         GLuint m_uVAOname;
@@ -81,21 +79,21 @@ class CCMultiSpriteBatchNode : public cocos2d::CCNode, public cocos2d::CCTexture
         bool m_bDirty;
 
 
-        CCMultiSpriteBatchNode() = default;
-        ~CCMultiSpriteBatchNode();
+        MultiSpriteBatchNode();
+        ~MultiSpriteBatchNode();
 
-        static CCMultiSpriteBatchNode* create(unsigned int capacity = kDefaultSpriteBatchCapacity);
+        static MultiSpriteBatchNode* create(unsigned int capacity = kDefaultSpriteBatchCapacity);
         bool init(unsigned int capacity);
 
         virtual void visit();
 
-        virtual void addChild(CCNode* child, int zOrder, int tag);
-        virtual void addChild(CCNode* child);
-        virtual void addChild(CCNode* child, int zOrder);
+        virtual void addChild(cocos2d::CCNode* child, int zOrder, int tag);
+        virtual void addChild(cocos2d::CCNode* child);
+        virtual void addChild(cocos2d::CCNode* child, int zOrder);
 
-        virtual void reorderChild(CCNode* child, int zOrder);
+        virtual void reorderChild(cocos2d::CCNode* child, int zOrder);
 
-        virtual void removeChild(CCNode* child, bool cleanup);
+        virtual void removeChild(cocos2d::CCNode* child, bool cleanup);
         virtual void removeChildAtIndex(unsigned int uIndex, bool bDoCleanup);
         virtual void removeAllChildrenWithCleanup(bool bCleanup);
 
@@ -103,9 +101,9 @@ class CCMultiSpriteBatchNode : public cocos2d::CCNode, public cocos2d::CCTexture
 
         virtual void draw();
 
-        void insertChild(CCSprite* pSprite, unsigned int uIndex);
-        void appendChild(CCSprite* sprite);
+        void insertChild(cocos2d::CCSprite* pSprite, unsigned int uIndex);
+        void appendChild(cocos2d::CCSprite* sprite);
         
-        virtual CCGLProgram* getOrCreateShaderProgram();
+        virtual cocos2d::CCGLProgram* getOrCreateShaderProgram();
         virtual void initVBOandVAO();
 };

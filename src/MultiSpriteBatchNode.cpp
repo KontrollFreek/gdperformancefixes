@@ -29,8 +29,8 @@ MultiSpriteBatchNode::MultiSpriteBatchNode() :
     m_bDirty(false) {}
 
 MultiSpriteBatchNode::~MultiSpriteBatchNode() {
-    CC_SAFE_RELEASE(m_pobTextureAtlases);
-    CC_SAFE_RELEASE(m_pobDescendents);
+    CC_SAFE_DELETE(m_pobTextureAtlases);
+    CC_SAFE_DELETE(m_pobDescendents);
 
     CC_SAFE_DELETE_ARRAY(m_pQuads);
     CC_SAFE_DELETE_ARRAY(m_pIndices);

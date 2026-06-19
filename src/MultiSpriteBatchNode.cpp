@@ -55,7 +55,7 @@ void MultiSpriteBatchNode::draw() {
 
     ccGLBlendFunc(CC_BLEND_SRC, CC_BLEND_DST);
 
-    for (auto atlas : m_pobTextureAtlases) {
+    for (auto atlas : *m_pobTextureAtlases) {
         // TODO - run rendering code for each atlas
 
         ccGLBindTexture2D(0);

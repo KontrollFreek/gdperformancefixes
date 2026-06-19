@@ -10,13 +10,10 @@ CCMultiSpriteBatchNode* create(unsigned int capacity) {
 }
 
 bool CCMultiSpriteBatchNode::init(unsigned int capacity) {
-    m_pobTextureAtlases = new CCArrayExt<CCTextureAtlas*>();
-    m_pobTextureAtlases->init
+    if (!CCNode::init()) return false;
 
     m_pobTextureAtlases = new CCArrayExt<CCTextureAtlas*>();
-
-    m_pChildren = new CCArray();
-    m_pChildren->initWithCapacity(capacity);
+    m_pobDescendents = new CCArrayExt<CCNode*>();
 
     this->setShaderProgram(this->getOrCreateShaderProgram());
 

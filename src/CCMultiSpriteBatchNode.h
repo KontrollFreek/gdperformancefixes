@@ -66,11 +66,11 @@ struct V3F_C4B_T2F_I1UI_Quad {
     V3F_C4B_T2F_I1UI tr;
 };
 
-class CCMultiSpriteBatchNode : public CCNode, public CCTextureProtocol {
+class CCMultiSpriteBatchNode : public cocos2d::CCNode, public cocos2d::CCTextureProtocol {
     public:
 
         CCArrayExt<CCTextureAtlas*>* m_pobTextureAtlases = nullptr;
-        CCArrayExt<CCObject*>* m_pobDescendents = nullptr; // All children in a flat array
+        CCArrayExt<CCNode*>* m_pobDescendents = nullptr; // All children in a flat array
         V3F_C4B_T2F_I1UI_Quad* m_pQuads = nullptr;
         GLushort* m_pIndices = nullptr;
 

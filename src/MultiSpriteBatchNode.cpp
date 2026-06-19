@@ -9,8 +9,9 @@ MultiSpriteBatchNode::MultiSpriteBatchNode() :
     m_bDirty(false) {}
 
 MultiSpriteBatchNode::~MultiSpriteBatchNode() {
-    CC_SAFE_DELETE(m_pobTextureAtlases);
-    CC_SAFE_DELETE(m_pobDescendents);
+    CC_SAFE_DELETE(m_pAtlasUseCount);
+    CC_SAFE_DELETE(m_pTextureAtlases);
+    CC_SAFE_DELETE(m_pDescendents);
 
     CC_SAFE_DELETE_ARRAY(m_pQuads);
     CC_SAFE_DELETE_ARRAY(m_pIndices);
@@ -31,8 +32,11 @@ MultiSpriteBatchNode* create(unsigned int capacity) {
 bool MultiSpriteBatchNode::init(unsigned int capacity) {
     if (!CCNode::init()) return false;
 
-    m_pobTextureAtlases = new CCArrayExt<CCTextureAtlas*>();
-    m_pobDescendents = new CCArrayExt<CCNode*>();
+    m_pAtlasUseCount = new std::unordered_map<cocos2d::CCTextureAtlas*, unsigned int>();
+    m_pTextureAtlases = new CCArrayExt<CCTextureAtlas*>();
+    m_pDescendents = new CCArrayExt<CCNode*>();
+
+    this->initVBOandVAO();
 
     this->setShaderProgram(this->getOrCreateShaderProgram());
 
@@ -40,9 +44,81 @@ bool MultiSpriteBatchNode::init(unsigned int capacity) {
 }
 
 
+void MultiSpriteBatchNode::visit() {
+    // Identical to CCSpriteBatchNode::visit
+
+    if (!m_bVisible) {
+        return;
+    }
+
+    kmGLPushMatrix();
+
+    if (m_pGrid && m_pGrid->isActive()) {
+        m_pGrid->beforeDraw();
+        transformAncestors();
+    }
+
+    this->sortAllChildren();
+    this->transform();
+
+    this->draw();
+
+    if (m_pGrid && m_pGrid->isActive()) {
+        m_pGrid->afterDraw(this);
+    }
+
+    kmGLPopMatrix();
+    this->setOrderOfArrival(0);
+}
+
+
+void MultiSpriteBatchNode::addChild(CCNode* child, int zOrder, int tag) {
+    if (!child || !dynamic_cast<CCSprite*>(child)) return;
+
+    CCSprite* pSprite = static_cast<CCSprite*>(child);
+    this->addChildrenToDescendents(pSprite);
+
+    CCNode::addChild(child, zOrder, tag);
+}
+
+void MultiSpriteBatchNode::addChild(CCNode* child) {
+    MultiSpriteBatchNode::addChild(child, 0, 0);
+}
+
+void MultiSpriteBatchNode::addChild(CCNode* child, int zOrder) {
+    MultiSpriteBatchNode::addChild(child, zOrder, 0);
+}
+
+
+void MultiSpriteBatchNode::addChildTextureAtlas(cocos2d::CCSprite* child) {
+    auto& pTextureAtlas = child->m_pobTextureAtlas;
+
+    bool bNeedsAddAtlas = true;
+    for (auto atlas : *m_pTextureAtlases) {
+        if (atlas->m_pTexture->m_uName == pTextureAtlas->m_pTexture->m_uName) {
+            bNeedsAddAtlas = false;
+            break;
+        }
+    }
+
+    if (bNeedsAddAtlas) m_pTextureAtlases->push_back(pTextureAtlas);
+    (*m_pAtlasUseCount)[pTextureAtlas]++;
+}
+
+void MultiSpriteBatchNode::addChildrenToDescendents(cocos2d::CCSprite* child) {
+    this->addChildTextureAtlas(child);
+    m_pDescendents->push_back(child);
+
+    for (auto child : child->getChildrenExt()) {
+        if (!dynamic_cast<CCSprite*>(child)) continue;
+        this->addChildrenToDescendents(static_cast<CCSprite*>(child));
+    }
+}
+
+
 void MultiSpriteBatchNode::draw() {
     if (m_pChildren->count() == 0) return;
-    if (m_pobTextureAtlases->empty()) return;
+    if (m_pTextureAtlases->empty()) return;
 
     CC_NODE_DRAW_SETUP();
     
@@ -55,7 +131,7 @@ void MultiSpriteBatchNode::draw() {
 
     ccGLBlendFunc(CC_BLEND_SRC, CC_BLEND_DST);
 
-    for (auto atlas : *m_pobTextureAtlases) {
+    for (auto atlas : *m_pTextureAtlases) {
         // TODO - run rendering code for each atlas
 
         ccGLBindTexture2D(0);

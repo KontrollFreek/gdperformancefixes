@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Geode/Geode.hpp>
+#include <unordered_map>
 
 constexpr const char* kShader_AddressableTexture = "ShaderAddressableTexture";
 constexpr const char* kAttributeNameTexIndex = "a_texIndex";
@@ -67,8 +68,9 @@ struct V3F_C4B_T2F_I1UI_Quad {
 class MultiSpriteBatchNode : public cocos2d::CCNode/*, public cocos2d::CCTextureProtocol*/ {
     public:
 
-        geode::cocos::CCArrayExt<cocos2d::CCTextureAtlas*>* m_pobTextureAtlases;
-        geode::cocos::CCArrayExt<cocos2d::CCNode*>* m_pobDescendents; // All children in a flat array
+        std::unordered_map<cocos2d::CCTextureAtlas*, unsigned int>* m_pAtlasUseCount;
+        geode::cocos::CCArrayExt<cocos2d::CCTextureAtlas*>* m_pTextureAtlases;
+        geode::cocos::CCArrayExt<cocos2d::CCNode*>* m_pDescendents; // All children in a flat array
         V3F_C4B_T2F_I1UI_Quad* m_pQuads;
         GLushort* m_pIndices;
 
@@ -91,7 +93,8 @@ class MultiSpriteBatchNode : public cocos2d::CCNode/*, public cocos2d::CCTexture
         virtual void addChild(cocos2d::CCNode* child);
         virtual void addChild(cocos2d::CCNode* child, int zOrder);
 
-        virtual void reorderChild(cocos2d::CCNode* child, int zOrder);
+        virtual void addChildTextureAtlas(cocos2d::CCSprite* child);
+        virtual void addChildrenToDescendents(cocos2d::CCSprite* child);
 
         virtual void removeChild(cocos2d::CCNode* child, bool cleanup);
         virtual void removeChildAtIndex(unsigned int uIndex, bool bDoCleanup);
@@ -100,10 +103,8 @@ class MultiSpriteBatchNode : public cocos2d::CCNode/*, public cocos2d::CCTexture
         virtual void sortAllChildren();
 
         virtual void draw();
-
-        void insertChild(cocos2d::CCSprite* pSprite, unsigned int uIndex);
-        void appendChild(cocos2d::CCSprite* sprite);
         
         virtual cocos2d::CCGLProgram* getOrCreateShaderProgram();
+
         virtual void initVBOandVAO();
 };

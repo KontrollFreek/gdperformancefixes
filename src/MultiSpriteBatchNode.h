@@ -3,10 +3,11 @@
 #include <Geode/Geode.hpp>
 #include <unordered_map>
 
-constexpr const char* kShader_AddressableTexture = "ShaderAddressableTexture";
-constexpr const char* kAttributeNameTexIndex = "a_texIndex";
-constexpr const GLuint kVertexAttrib_TexIndex = cocos2d::kCCVertexAttrib_TexCoords + 1;
-constexpr const char* kUniformTexArray = "a_texIndex";
+#define kShader_AddressableTexture "ShaderAddressableTexture"
+#define kAttributeNameTexIndex "a_texIndex"
+enum { kVertexAttrib_TexIndex = cocos2d::kCCVertexAttrib_TexCoords + 1 };
+#define kUniformTexArray "u_texArray"
+
 constexpr const char* kAddressableTexture_Vert = R"(
 attribute vec4 a_position;
 attribute vec2 a_texCoord;
@@ -44,41 +45,53 @@ void main() {
 }
 )";
 
-struct V3F_C4B_T2F_I1UI {
+struct V3F_C4B_T2F_I1U {
     //! vertices (3F) (12 bytes)
     cocos2d::ccVertex3F vertices;
     //! colors (4B) (4 bytes)
     cocos2d::ccColor4B  colors;
     //! tex coords (2F) (8 bytes)
     cocos2d::ccTex2F    texCoords;
-    //! tex index (1UI) (4 bytes)
+    //! tex index (1U) (4 bytes)
     GLuint              texIndex;
 };
-struct V3F_C4B_T2F_I1UI_Quad {
+struct V3F_C4B_T2F_I1U_Quad {
     //! bottom left
-    V3F_C4B_T2F_I1UI bl;
+    V3F_C4B_T2F_I1U bl;
     //! bottom right
-    V3F_C4B_T2F_I1UI br;
+    V3F_C4B_T2F_I1U br;
     //! top left
-    V3F_C4B_T2F_I1UI tl;
+    V3F_C4B_T2F_I1U tl;
     //! top right
-    V3F_C4B_T2F_I1UI tr;
+    V3F_C4B_T2F_I1U tr;
 };
+
+void ccGLBindTexture2DArray(GLuint textureId);
+void ccGLBindTexture2DArrayN(GLuint textureUnit, GLuint textureId);
+// GLenum ccPixelFormatToGLTextureFormat(cocos2d::CCTexture2DPixelFormat pixelFormat);
+// GLenum ccPixelFormatToGLDataType(cocos2d::CCTexture2DPixelFormat pixelFormat);
 
 class MultiSpriteBatchNode : public cocos2d::CCNode/*, public cocos2d::CCTextureProtocol*/ {
     public:
 
-        std::unordered_map<cocos2d::CCTextureAtlas*, unsigned int>* m_pAtlasUseCount;
-        geode::cocos::CCArrayExt<cocos2d::CCTextureAtlas*>* m_pTextureAtlases;
-        geode::cocos::CCArrayExt<cocos2d::CCNode*>* m_pDescendents; // All children in a flat array
-        V3F_C4B_T2F_I1UI_Quad* m_pQuads;
+        unsigned int m_uTextureAtlasNextFree;
+        std::unordered_map<cocos2d::CCTextureAtlas*, unsigned int> m_obTextureAtlasUseCount;
+        std::unordered_map<cocos2d::CCTextureAtlas*, unsigned int> m_obTextureAtlasIndex;
+
+        V3F_C4B_T2F_I1U_Quad* m_pQuads;
         GLushort* m_pIndices;
 
-        GLuint m_pBuffersVBO[2]; // 0: vertex  1: indices
         GLuint m_uVAOname;
+        GLuint m_pBuffersVBO[2]; // 0: vertex  1: indices
+        GLuint m_uTextureArray;
+        // Used for copying textures to m_uTextureArray
+        GLuint m_pCopyFBO[2]; // 0: read  1: draw
         
         unsigned int m_uTotalQuads;
-        bool m_bDirty;
+        unsigned int m_uQuadCapacity;
+        bool m_bVertexBufferDirty;
+        bool m_bQuadsDirty;
+
 
 
         MultiSpriteBatchNode();
@@ -87,24 +100,36 @@ class MultiSpriteBatchNode : public cocos2d::CCNode/*, public cocos2d::CCTexture
         static MultiSpriteBatchNode* create(unsigned int capacity = kDefaultSpriteBatchCapacity);
         bool init(unsigned int capacity);
 
-        virtual void visit();
+        // virtual void visit();
+
+        virtual void addChildTextureAtlas(cocos2d::CCSprite* child);
 
         virtual void addChild(cocos2d::CCNode* child, int zOrder, int tag);
         virtual void addChild(cocos2d::CCNode* child);
         virtual void addChild(cocos2d::CCNode* child, int zOrder);
-
-        virtual void addChildTextureAtlas(cocos2d::CCSprite* child);
-        virtual void addChildrenToDescendents(cocos2d::CCSprite* child);
+        
+        virtual void removeChildTextureAtlas(cocos2d::CCSprite* child);
 
         virtual void removeChild(cocos2d::CCNode* child, bool cleanup);
-        virtual void removeChildAtIndex(unsigned int uIndex, bool bDoCleanup);
         virtual void removeAllChildrenWithCleanup(bool bCleanup);
 
-        virtual void sortAllChildren();
+        /**
+         * We can't access CCSprite::updateTransform without being
+         * a CCSpriteBatchNode, so instead we can hackily apply the
+         * transformations ourselves.
+         */
+        void applyChildTransformations(cocos2d::CCSprite* child);
+        void rebuildQuads();
+        void rebuildQuadsFromChildren(cocos2d::CCSprite* child);
+
+        void resizeBuffers(unsigned int size);
+        void resizeTextureAtlas(unsigned int neededWidth, unsigned int neededHeight, unsigned int neededDepth);
+        void copyTextureToArray(cocos2d::CCTexture2D* texture, GLuint layer);
 
         virtual void draw();
         
-        virtual cocos2d::CCGLProgram* getOrCreateShaderProgram();
+        cocos2d::CCGLProgram* getOrCreateShaderProgram();
 
-        virtual void initVBOandVAO();
+        void initVBOandVAO();
+        void initTextureArray();
 };

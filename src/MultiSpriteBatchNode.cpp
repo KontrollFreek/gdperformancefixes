@@ -128,7 +128,6 @@ void MultiSpriteBatchNode::visit() {
 
 
 
-// TODO - change to CCTexture2D
 void MultiSpriteBatchNode::addChildTexture(cocos2d::CCSprite* child) {
     auto& pTexture = GET_CHILD_TEXTURE(child);
 

@@ -58,6 +58,8 @@ void ccGLBindTexture2DArrayN(GLuint textureUnit, GLuint textureId) {
 
 
 MultiSpriteBatchNode::MultiSpriteBatchNode() :
+    m_pQuads(nullptr),
+    m_pIndices(nullptr),
     m_uTextureNextFree(0),
     m_uTotalQuads(0),
     m_bVertexBufferDirty(false),

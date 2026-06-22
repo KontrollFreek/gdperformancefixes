@@ -6,6 +6,10 @@ using namespace geode::prelude;
 
 
 
+#define GET_CHILD_TEXTURE(child) (child->m_pobTextureAtlas ? child->m_pobTextureAtlas->m_pTexture : child->m_pobTexture)
+
+
+
 void ccGLBindTexture2DArray(GLuint textureId) {
     ccGLBindTexture2DArrayN(1, textureId);
 }
@@ -55,7 +59,7 @@ void ccGLBindTexture2DArrayN(GLuint textureUnit, GLuint textureId) {
 
 
 MultiSpriteBatchNode::MultiSpriteBatchNode() :
-    m_uTextureAtlasNextFree(0),
+    m_uTextureNextFree(0),
     m_uTotalQuads(0),
     m_bVertexBufferDirty(false),
     m_bQuadsDirty(false) {}
@@ -124,29 +128,27 @@ bool MultiSpriteBatchNode::init(unsigned int capacity) {
 
 
 // TODO - change to CCTexture2D
-void MultiSpriteBatchNode::addChildTextureAtlas(cocos2d::CCSprite* child) {
-    auto& pTextureAtlas = child->m_pobTextureAtlas;
-    if (!pTextureAtlas) return;
-    auto& pTexture = pTextureAtlas->m_pTexture;
+void MultiSpriteBatchNode::addChildTexture(cocos2d::CCSprite* child) {
+    auto& pTexture = GET_CHILD_TEXTURE(child);
 
-    this->resizeTextureAtlas(
+    this->resizeTextureArray(
         pTexture->m_uPixelsWide,
         pTexture->m_uPixelsHigh,
-        m_uTextureAtlasNextFree
+        m_uTextureNextFree
     );
-    this->copyTextureToArray(pTexture, m_uTextureAtlasNextFree);
+    this->copyTextureToArray(pTexture, m_uTextureNextFree);
 
-    if (!m_obTextureAtlasIndex.contains(pTextureAtlas)) {
-        m_obTextureAtlasIndex[pTextureAtlas] = m_uTextureAtlasNextFree++;
+    if (!m_obTextureIndex.contains(pTexture)) {
+        m_obTextureIndex[pTexture] = m_uTextureNextFree++;
     }
-    m_obTextureAtlasUseCount[pTextureAtlas] += 1;
+    m_obTextureUseCount[pTexture] += 1;
 }
 
 
 
 void MultiSpriteBatchNode::addChild(CCNode* child, int zOrder, int tag) {
     if (typeinfo_cast<CCSprite*>(child)) {
-        this->addChildTextureAtlas(static_cast<CCSprite*>(child));
+        this->addChildTexture(static_cast<CCSprite*>(child));
         m_bQuadsDirty = true;
     }
 
@@ -163,11 +165,11 @@ void MultiSpriteBatchNode::addChild(CCNode* child, int zOrder) {
 
 
 
-void MultiSpriteBatchNode::removeChildTextureAtlas(cocos2d::CCSprite* child) {
-    auto& pTextureAtlas = child->m_pobTextureAtlas;
+void MultiSpriteBatchNode::removeChildTexture(cocos2d::CCSprite* child) {
+    auto& pTexture = GET_CHILD_TEXTURE(child);
 
-    if (!m_obTextureAtlasUseCount.contains(pTextureAtlas)) return;
-    if (--m_obTextureAtlasUseCount[pTextureAtlas] > 0) return;
+    if (!m_obTextureUseCount.contains(pTexture)) return;
+    if (--m_obTextureUseCount[pTexture] > 0) return;
 
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_uTextureArray);
 
@@ -177,20 +179,20 @@ void MultiSpriteBatchNode::removeChildTextureAtlas(cocos2d::CCSprite* child) {
 
     glTexSubImage3D(
         GL_TEXTURE_2D_ARRAY, 0,
-        0, 0, m_obTextureAtlasIndex.at(pTextureAtlas),
+        0, 0, m_obTextureIndex.at(pTexture),
         iTextureWidth, iTextureHeight, 1,
         GL_RGBA, GL_UNSIGNED_BYTE,
         NULL
     );
 
-    m_obTextureAtlasIndex.erase(pTextureAtlas);
+    m_obTextureIndex.erase(pTexture);
 }
 
 
 
 void MultiSpriteBatchNode::removeChild(cocos2d::CCNode* child, bool cleanup) {
     if (typeinfo_cast<CCSprite*>(child)) {
-        this->removeChildTextureAtlas(static_cast<CCSprite*>(child));
+        this->removeChildTexture(static_cast<CCSprite*>(child));
         m_bQuadsDirty = true;
     }
 
@@ -198,9 +200,9 @@ void MultiSpriteBatchNode::removeChild(cocos2d::CCNode* child, bool cleanup) {
 }
 
 void MultiSpriteBatchNode::removeAllChildrenWithCleanup(bool bCleanup) {
-    m_uTextureAtlasNextFree = 0;
-    m_obTextureAtlasIndex.clear();
-    m_obTextureAtlasUseCount.clear();
+    m_uTextureNextFree = 0;
+    m_obTextureIndex.clear();
+    m_obTextureUseCount.clear();
 
     m_uTotalQuads = 0;
 
@@ -263,6 +265,7 @@ void MultiSpriteBatchNode::rebuildQuads() {
 
 void MultiSpriteBatchNode::rebuildQuadsFromChildren(CCSprite* child) {
     if (!child->m_bVisible || child->m_bShouldBeHidden) return;
+    auto& pTexture = GET_CHILD_TEXTURE(child);
 
     for (auto& _child : child->getChildrenExt()) {
         auto child = typeinfo_cast<CCSprite*>(_child);
@@ -279,7 +282,7 @@ void MultiSpriteBatchNode::rebuildQuadsFromChildren(CCSprite* child) {
             child->m_sQuad.pos.vertices, \
             child->m_sQuad.pos.colors, \
             child->m_sQuad.pos.texCoords, \
-            m_obTextureAtlasIndex.at(child->m_pobTextureAtlas) \
+            m_obTextureIndex.at(pTexture) \
         }
 
     m_pQuads[m_uTotalQuads] = {
@@ -323,7 +326,7 @@ void MultiSpriteBatchNode::resizeBuffers(unsigned int size) {
     m_uQuadCapacity = size;
 }
 
-void MultiSpriteBatchNode::resizeTextureAtlas(unsigned int neededWidth, unsigned int neededHeight, unsigned int neededDepth) {
+void MultiSpriteBatchNode::resizeTextureArray(unsigned int neededWidth, unsigned int neededHeight, unsigned int neededDepth) {
     GLint iTextureWidth, iTextureHeight, iTextureDepth;
     glGetTexLevelParameteriv(GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_WIDTH, &iTextureWidth);
     glGetTexLevelParameteriv(GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_HEIGHT, &iTextureHeight);
@@ -356,9 +359,9 @@ void MultiSpriteBatchNode::resizeTextureAtlas(unsigned int neededWidth, unsigned
             NULL
         );
 
-        for (auto& atlasIndex : m_obTextureAtlasIndex) {
-            auto& pTexture = atlasIndex.first->m_pTexture;
-            auto& uIndex = atlasIndex.second;
+        for (auto& textureIndex : m_obTextureIndex) {
+            auto& pTexture = textureIndex.first;
+            auto& uIndex = textureIndex.second;
             
             this->copyTextureToArray(pTexture, uIndex);
         }
@@ -398,7 +401,7 @@ void MultiSpriteBatchNode::copyTextureToArray(cocos2d::CCTexture2D* texture, GLu
 
 void MultiSpriteBatchNode::draw() {
     if (m_pChildren->count() == 0) return;
-    if (m_obTextureAtlasIndex.empty()) return;
+    if (m_obTextureIndex.empty()) return;
     this->rebuildQuads(); // TODO - run on seperate thread
 
     CC_NODE_DRAW_SETUP();

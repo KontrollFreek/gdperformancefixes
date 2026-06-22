@@ -74,9 +74,9 @@ void ccGLBindTexture2DArrayN(GLuint textureUnit, GLuint textureId);
 class MultiSpriteBatchNode : public cocos2d::CCNode/*, public cocos2d::CCTextureProtocol*/ {
     public:
 
-        unsigned int m_uTextureAtlasNextFree;
-        std::unordered_map<cocos2d::CCTextureAtlas*, unsigned int> m_obTextureAtlasUseCount;
-        std::unordered_map<cocos2d::CCTextureAtlas*, unsigned int> m_obTextureAtlasIndex;
+        unsigned int m_uTextureNextFree;
+        std::unordered_map<cocos2d::CCTexture2D*, unsigned int> m_obTextureUseCount;
+        std::unordered_map<cocos2d::CCTexture2D*, unsigned int> m_obTextureIndex;
 
         V3F_C4B_T2F_I1U_Quad* m_pQuads;
         GLushort* m_pIndices;
@@ -102,13 +102,13 @@ class MultiSpriteBatchNode : public cocos2d::CCNode/*, public cocos2d::CCTexture
 
         // virtual void visit();
 
-        virtual void addChildTextureAtlas(cocos2d::CCSprite* child);
+        virtual void addChildTexture(cocos2d::CCSprite* child);
 
         virtual void addChild(cocos2d::CCNode* child, int zOrder, int tag);
         virtual void addChild(cocos2d::CCNode* child);
         virtual void addChild(cocos2d::CCNode* child, int zOrder);
         
-        virtual void removeChildTextureAtlas(cocos2d::CCSprite* child);
+        virtual void removeChildTexture(cocos2d::CCSprite* child);
 
         virtual void removeChild(cocos2d::CCNode* child, bool cleanup);
         virtual void removeAllChildrenWithCleanup(bool bCleanup);
@@ -123,7 +123,7 @@ class MultiSpriteBatchNode : public cocos2d::CCNode/*, public cocos2d::CCTexture
         void rebuildQuadsFromChildren(cocos2d::CCSprite* child);
 
         void resizeBuffers(unsigned int size);
-        void resizeTextureAtlas(unsigned int neededWidth, unsigned int neededHeight, unsigned int neededDepth);
+        void resizeTextureArray(unsigned int neededWidth, unsigned int neededHeight, unsigned int neededDepth);
         void copyTextureToArray(cocos2d::CCTexture2D* texture, GLuint layer);
 
         virtual void draw();

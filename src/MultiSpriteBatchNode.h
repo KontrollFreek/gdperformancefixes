@@ -100,7 +100,7 @@ class MultiSpriteBatchNode : public cocos2d::CCNode/*, public cocos2d::CCTexture
         static MultiSpriteBatchNode* create(unsigned int capacity = kDefaultSpriteBatchCapacity);
         bool init(unsigned int capacity);
 
-        // virtual void visit();
+        virtual void visit();
 
         virtual void addChildTexture(cocos2d::CCSprite* child);
 

@@ -101,30 +101,30 @@ bool MultiSpriteBatchNode::init(unsigned int capacity) {
 
 
 
-// void MultiSpriteBatchNode::visit() {
-//     // Identical to CCSpriteBatchNode::visit
+void MultiSpriteBatchNode::visit() {
+    // Identical to CCSpriteBatchNode::visit
 
-//     if (!m_bVisible) return;
+    if (!m_bVisible) return;
 
-//     kmGLPushMatrix();
+    kmGLPushMatrix();
 
-//     if (m_pGrid && m_pGrid->isActive()) {
-//         m_pGrid->beforeDraw();
-//         transformAncestors();
-//     }
+    if (m_pGrid && m_pGrid->isActive()) {
+        m_pGrid->beforeDraw();
+        transformAncestors();
+    }
 
-//     this->sortAllChildren();
-//     this->transform();
+    this->sortAllChildren();
+    this->transform();
 
-//     this->draw();
+    this->draw();
 
-//     if (m_pGrid && m_pGrid->isActive()) {
-//         m_pGrid->afterDraw(this);
-//     }
+    if (m_pGrid && m_pGrid->isActive()) {
+        m_pGrid->afterDraw(this);
+    }
 
-//     kmGLPopMatrix();
-//     this->setOrderOfArrival(0);
-// }
+    kmGLPopMatrix();
+    this->setOrderOfArrival(0);
+}
 
 
 

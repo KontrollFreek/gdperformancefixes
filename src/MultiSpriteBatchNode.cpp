@@ -1,5 +1,4 @@
 #include "MultiSpriteBatchNode.h"
-#include "Geode/cocos/platform/win32/CCGL.h"
 #include <cstring>
 
 using namespace geode::prelude;
@@ -76,7 +75,7 @@ MultiSpriteBatchNode::~MultiSpriteBatchNode() {
 
 
 
-MultiSpriteBatchNode* create(unsigned int capacity) {
+MultiSpriteBatchNode* MultiSpriteBatchNode::create(unsigned int capacity) {
     MultiSpriteBatchNode* node = new MultiSpriteBatchNode();
     node->init(capacity);
     node->autorelease();

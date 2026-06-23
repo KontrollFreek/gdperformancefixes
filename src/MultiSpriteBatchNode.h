@@ -66,8 +66,6 @@ struct V3F_C4B_T2F_I1U_Quad {
     V3F_C4B_T2F_I1U tr;
 };
 
-void ccGLBindTexture2DArray(GLuint textureId);
-void ccGLBindTexture2DArrayN(GLuint textureUnit, GLuint textureId);
 // GLenum ccPixelFormatToGLTextureFormat(cocos2d::CCTexture2DPixelFormat pixelFormat);
 // GLenum ccPixelFormatToGLDataType(cocos2d::CCTexture2DPixelFormat pixelFormat);
 

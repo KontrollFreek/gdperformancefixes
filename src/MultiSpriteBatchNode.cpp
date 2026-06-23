@@ -9,15 +9,6 @@ using namespace geode::prelude;
 
 
 
-void ccGLBindTexture2DArray(GLuint textureId) {
-    ccGLBindTexture2DArrayN(1, textureId);
-}
-
-void ccGLBindTexture2DArrayN(GLuint textureUnit, GLuint textureId) {
-    glActiveTexture(GL_TEXTURE0 + static_cast<GLuint>(textureUnit));
-    glBindTexture(GL_TEXTURE_2D_ARRAY, static_cast<GLuint>(textureId));
-}
-
 // GLenum ccPixelFormatToGLTextureFormat(cocos2d::CCTexture2DPixelFormat pixelFormat) {
 //     switch (pixelFormat) {
 //         default:
@@ -102,7 +93,7 @@ bool MultiSpriteBatchNode::init(unsigned int capacity) {
 
 
 void MultiSpriteBatchNode::visit() {
-    // Identical to CCSpriteBatchNode::visit
+    // Nearly identical to CCSpriteBatchNode::visit
 
     if (!m_bVisible) return;
 
@@ -110,12 +101,18 @@ void MultiSpriteBatchNode::visit() {
 
     if (m_pGrid && m_pGrid->isActive()) {
         m_pGrid->beforeDraw();
-        transformAncestors();
+        this->transformAncestors();
     }
+
+    log::debug("MultiSpriteBatchNode::m_uTextureNextFree {}", m_uTextureNextFree);
+    log::debug("MultiSpriteBatchNode::m_uTotalQuads {}", m_uTotalQuads);
+    log::debug("MultiSpriteBatchNode::m_uQuadCapacity {}", m_uQuadCapacity);
+    log::debug("MultiSpriteBatchNode::m_bVertexBufferDirty {}", m_bVertexBufferDirty);
+    log::debug("MultiSpriteBatchNode::m_bQuadsDirty {}", m_bQuadsDirty);
 
     this->sortAllChildren();
     this->transform();
-
+    this->rebuildQuads();
     this->draw();
 
     if (m_pGrid && m_pGrid->isActive()) {
@@ -123,6 +120,7 @@ void MultiSpriteBatchNode::visit() {
     }
 
     kmGLPopMatrix();
+
     this->setOrderOfArrival(0);
 }
 
@@ -130,6 +128,7 @@ void MultiSpriteBatchNode::visit() {
 
 void MultiSpriteBatchNode::addChildTexture(cocos2d::CCSprite* child) {
     auto& pTexture = GET_CHILD_TEXTURE(child);
+    if (!pTexture) return;
 
     this->resizeTextureArray(
         pTexture->m_uPixelsWide,
@@ -147,8 +146,8 @@ void MultiSpriteBatchNode::addChildTexture(cocos2d::CCSprite* child) {
 
 
 void MultiSpriteBatchNode::addChild(CCNode* child, int zOrder, int tag) {
-    if (typeinfo_cast<CCSprite*>(child)) {
-        this->addChildTexture(static_cast<CCSprite*>(child));
+    if (auto pSprite = typeinfo_cast<CCSprite*>(child)) {
+        this->addChildTexture(pSprite);
         m_bQuadsDirty = true;
     }
 
@@ -167,6 +166,7 @@ void MultiSpriteBatchNode::addChild(CCNode* child, int zOrder) {
 
 void MultiSpriteBatchNode::removeChildTexture(cocos2d::CCSprite* child) {
     auto& pTexture = GET_CHILD_TEXTURE(child);
+    if (!pTexture) return;
 
     if (!m_obTextureUseCount.contains(pTexture)) return;
     if (--m_obTextureUseCount[pTexture] > 0) return;
@@ -185,14 +185,16 @@ void MultiSpriteBatchNode::removeChildTexture(cocos2d::CCSprite* child) {
         NULL
     );
 
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+
     m_obTextureIndex.erase(pTexture);
 }
 
 
 
 void MultiSpriteBatchNode::removeChild(cocos2d::CCNode* child, bool cleanup) {
-    if (typeinfo_cast<CCSprite*>(child)) {
-        this->removeChildTexture(static_cast<CCSprite*>(child));
+    if (auto pSprite = typeinfo_cast<CCSprite*>(child)) {
+        this->removeChildTexture(pSprite);
         m_bQuadsDirty = true;
     }
 
@@ -214,7 +216,7 @@ void MultiSpriteBatchNode::removeAllChildrenWithCleanup(bool bCleanup) {
 void MultiSpriteBatchNode::applyChildTransformations(CCSprite* child) {
     child->m_transformToBatch = child->nodeToParentTransform();
 
-    CCSize size = child->m_obRect.size;
+    CCSize& size = child->m_obRect.size;
 
     float x1 = child->m_obOffsetPosition.x;
     float y1 = child->m_obOffsetPosition.y;
@@ -245,7 +247,7 @@ void MultiSpriteBatchNode::applyChildTransformations(CCSprite* child) {
     child->m_sQuad.tl.vertices = vertex3(dx, dy, child->m_fVertexZ);
     child->m_sQuad.tr.vertices = vertex3(cx, cy, child->m_fVertexZ);
 
-    child->m_bDirty = false;
+    // child->m_bDirty = false;
 }
 
 void MultiSpriteBatchNode::rebuildQuads() {
@@ -272,7 +274,7 @@ void MultiSpriteBatchNode::rebuildQuadsFromChildren(CCSprite* child) {
         if (child) this->rebuildQuadsFromChildren(child);
     }
 
-    if (child->m_bDirty) this->applyChildTransformations(child);
+    /* if (child->m_bDirty) */ this->applyChildTransformations(child);
 
     if (m_uQuadCapacity == m_uTotalQuads) this->resizeBuffers(m_uQuadCapacity * 1.5);
     m_uTotalQuads += 1;
@@ -327,6 +329,8 @@ void MultiSpriteBatchNode::resizeBuffers(unsigned int size) {
 }
 
 void MultiSpriteBatchNode::resizeTextureArray(unsigned int neededWidth, unsigned int neededHeight, unsigned int neededDepth) {
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_uTextureArray);
+
     GLint iTextureWidth, iTextureHeight, iTextureDepth;
     glGetTexLevelParameteriv(GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_WIDTH, &iTextureWidth);
     glGetTexLevelParameteriv(GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_HEIGHT, &iTextureHeight);
@@ -347,8 +351,6 @@ void MultiSpriteBatchNode::resizeTextureArray(unsigned int neededWidth, unsigned
     }
 
     if (bNeedsResize) {
-        glBindTexture(GL_TEXTURE_2D_ARRAY, m_uTextureArray);
-
         glTexImage3D(
             GL_TEXTURE_2D_ARRAY, 0,
             GL_RGBA,
@@ -366,6 +368,8 @@ void MultiSpriteBatchNode::resizeTextureArray(unsigned int neededWidth, unsigned
             this->copyTextureToArray(pTexture, uIndex);
         }
     }
+
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 }
 
 void MultiSpriteBatchNode::copyTextureToArray(cocos2d::CCTexture2D* texture, GLuint layer) {
@@ -395,18 +399,19 @@ void MultiSpriteBatchNode::copyTextureToArray(cocos2d::CCTexture2D* texture, GLu
         0, 0, texture->m_uPixelsWide, texture->m_uPixelsHigh, 
         GL_COLOR_BUFFER_BIT, GL_NEAREST
     );
+
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 }
 
 
 
 void MultiSpriteBatchNode::draw() {
-    if (m_pChildren->count() == 0) return;
-    if (m_obTextureIndex.empty()) return;
-    this->rebuildQuads(); // TODO - run on seperate thread
+    if (m_uTotalQuads == 0) return;
+    log::debug("MultiSpriteBatchNode::draw");
 
     CC_NODE_DRAW_SETUP();
     ccGLBlendFunc(CC_BLEND_SRC, CC_BLEND_DST);
-
 
     ccGLBindVAO(m_uVAOname);
 
@@ -419,13 +424,17 @@ void MultiSpriteBatchNode::draw() {
         m_bVertexBufferDirty = false;
     }
 
-    ccGLBindTexture2DArray(m_uTextureArray);
-
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m_uTextureArray);
 
     glDrawElements(GL_TRIANGLES, m_uTotalQuads * 6, GL_UNSIGNED_SHORT, 0x0);
 
-    // CC_INCREMENT_GL_DRAWS(1);
-    CHECK_GL_ERROR_DEBUG();
+
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    ccGLBindVAO(0);
 }
 
 
@@ -504,10 +513,16 @@ void MultiSpriteBatchNode::initVBOandVAO() {
 
     glBufferData(GL_ARRAY_BUFFER, 0, NULL, GL_STATIC_DRAW);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, 0, NULL, GL_STATIC_DRAW);
+
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    ccGLBindVAO(0);
 }
 
 void MultiSpriteBatchNode::initTextureArray() {
     glBindTexture(GL_TEXTURE_2D_ARRAY, m_uTextureArray);
+
 
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
@@ -523,4 +538,7 @@ void MultiSpriteBatchNode::initTextureArray() {
         GL_RGBA, GL_UNSIGNED_BYTE,
         NULL
     );
+
+
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 }

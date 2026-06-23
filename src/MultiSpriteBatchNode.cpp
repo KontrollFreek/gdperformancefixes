@@ -104,12 +104,6 @@ void MultiSpriteBatchNode::visit() {
         this->transformAncestors();
     }
 
-    log::debug("MultiSpriteBatchNode::m_uTextureNextFree {}", m_uTextureNextFree);
-    log::debug("MultiSpriteBatchNode::m_uTotalQuads {}", m_uTotalQuads);
-    log::debug("MultiSpriteBatchNode::m_uQuadCapacity {}", m_uQuadCapacity);
-    log::debug("MultiSpriteBatchNode::m_bVertexBufferDirty {}", m_bVertexBufferDirty);
-    log::debug("MultiSpriteBatchNode::m_bQuadsDirty {}", m_bQuadsDirty);
-
     this->sortAllChildren();
     this->transform();
     this->rebuildQuads();
@@ -250,6 +244,7 @@ void MultiSpriteBatchNode::applyChildTransformations(CCSprite* child) {
     // child->m_bDirty = false;
 }
 
+// TODO - fix
 void MultiSpriteBatchNode::rebuildQuads() {
     if (!m_bQuadsDirty) return;
 
@@ -408,7 +403,6 @@ void MultiSpriteBatchNode::copyTextureToArray(cocos2d::CCTexture2D* texture, GLu
 
 void MultiSpriteBatchNode::draw() {
     if (m_uTotalQuads == 0) return;
-    log::debug("MultiSpriteBatchNode::draw");
 
     CC_NODE_DRAW_SETUP();
     ccGLBlendFunc(CC_BLEND_SRC, CC_BLEND_DST);

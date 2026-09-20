@@ -1,0 +1,2 @@
+# ModernCocos
+Replaces slow and outdated [Cocos2d-x 2.2.3](https://github.com/cocos2d/cocos2d-x/tree/5a25fe75cb8b26b61b14b070e757ec3b17ff7791) methods with new [Cocos2d-x 4.0](https://github.com/cocos2d/cocos2d-x/tree/e3438ed3fd10a304b7ca2cd3dad9b29fead818d2) methods

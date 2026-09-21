@@ -7,9 +7,9 @@
 		"ios": "2.2081"
 	},
 	"id": "lexi.gdperformancefixes",
-	"name": "ModernCocos",
+	"name": "AxmolEngine",
 	"version": "v0.0.1",
 	"developer": "Lexi",
-	"description": "Replaces older Cocos functions with new ones.",
+	"description": "Replaces the backend with Axmol v2",
 	"early-load": true
 }

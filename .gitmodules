@@ -1,0 +1,4 @@
+[submodule "axmol"]
+	path = axmol
+	url = https://github.com/axmolengine/axmol.git
+    branch = release/2.x
